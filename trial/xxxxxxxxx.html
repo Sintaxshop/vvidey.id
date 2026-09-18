@@ -31,6 +31,7 @@
             position: relative;
             cursor: pointer;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden; /* Memastikan overlay tidak keluar batas */
         }
 
         /* Tombol Play Lingkaran Default CSS */
@@ -64,6 +65,54 @@
             transform: translate(-50%, -50%) scale(1.1);
             background-color: rgba(255, 255, 255, 0.4);
         }
+
+        /* -------------------------------------
+           OVERLAY & TEKS & TOMBOL REFRESH 
+           ------------------------------------- */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9); /* Latar belakang lebih gelap agar teks jelas */
+            display: none; /* Disembunyikan secara default */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            cursor: default;
+        }
+
+        .overlay-text {
+            color: #ffffff;
+            font-size: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 0 20px;
+            line-height: 1.5;
+        }
+
+        .reload-btn {
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffffff;
+            background-color: #ff4d4d;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(255, 77, 77, 0.4);
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .reload-btn:hover {
+            background-color: #ff1a1a;
+        }
+
+        .reload-btn:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body>
@@ -71,6 +120,12 @@
     <!-- Fake Video Player -->
     <div class="video-container" id="fakePlayer">
         <div class="play-button"></div>
+        
+        <!-- Layar Overlay (Muncul setelah klik ke-2) -->
+        <div class="overlay" id="reloadOverlay">
+            <p class="overlay-text">Sesi berakhir. Refresh halaman ini untuk memuat ulang.</p>
+            <button class="reload-btn" id="reloadBtn">Refresh</button>
+        </div>
     </div>
 
     <script>
@@ -88,38 +143,36 @@
             return false;
         }
 
-        // 2. Fungsi untuk mengecek jumlah klik dan langsung memunculkan alert
-        function checkAndAlert() {
+        // 2. Fungsi untuk menampilkan layar overlay
+        function checkAndShowOverlay() {
             let currentClicks = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
             if (currentClicks >= 2) {
-                alert("Sesi video telah berakhir. Silakan refresh halaman ini untuk memulai kembali.");
+                document.getElementById("reloadOverlay").style.display = "flex";
             }
         }
 
-        // 3. Eksekusi saat pertama dimuat: Reset jika Refresh, atau Cek Alert jika bukan Refresh
+        // 3. Eksekusi saat pertama dimuat: Reset jika Refresh, atau tampilkan overlay jika bukan Refresh
         if (checkIsReload()) {
             localStorage.removeItem(STORAGE_KEY);
         } else {
-            // Cek langsung (berguna jika browser mengandalkan cache langsung tanpa memicu event window)
-            checkAndAlert();
+            checkAndShowOverlay();
         }
 
         // 4. Deteksi saat menekan tombol BACK (Kembali dari tab Shopee)
         window.addEventListener("pageshow", function(event) {
-            // event.persisted menandakan halaman diambil dari Back/Forward Cache browser
             if (event.persisted && !checkIsReload()) {
-                checkAndAlert();
+                checkAndShowOverlay();
             }
         });
 
         // 5. Tambahan perlindungan: Cek saat user kembali fokus ke tab website ini
         document.addEventListener("visibilitychange", function() {
             if (document.visibilityState === 'visible' && !checkIsReload()) {
-                checkAndAlert();
+                checkAndShowOverlay();
             }
         });
 
-        // 6. Logika klik pada area video
+        // 6. Logika klik pada area video utama
         document.getElementById("fakePlayer").addEventListener("click", function() {
             let currentClicks = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
 
@@ -131,9 +184,20 @@
                 // Redirect ke Shopee
                 window.location.href = SHOPEE_URL;
             } else {
-                // Jika user entah bagaimana mengabaikan pop-up dan mencoba mengklik lagi
-                checkAndAlert();
+                // Tampilkan overlay jika mencoba klik lagi
+                checkAndShowOverlay();
             }
+        });
+
+        // 7. Logika klik pada background overlay (Mencegah klik diteruskan ke fakePlayer di belakangnya)
+        document.getElementById("reloadOverlay").addEventListener("click", function(e) {
+            e.stopPropagation(); 
+        });
+
+        // 8. Logika klik pada tombol "Refresh"
+        document.getElementById("reloadBtn").addEventListener("click", function(e) {
+            e.stopPropagation(); // Mencegah klik diteruskan
+            window.location.reload(true); // Refresh halaman secara paksa
         });
     </script>
 </body>
