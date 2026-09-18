@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake Video Player</title>
+    <style>
+        /* Reset dasar */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Posisi ke tengah layar */
+        body {
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: sans-serif;
+        }
+
+        /* Kontainer Video - Rasio 9:16 */
+        .video-container {
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 9 / 16;
+            background-color: #000000;
+            position: relative;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Tombol Play Lingkaran Default CSS */
+        .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70px;
+            height: 70px;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+
+        /* Segitiga Play (Menggunakan murni CSS border) */
+        .play-button::after {
+            content: '';
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 15px 0 15px 22px;
+            border-color: transparent transparent transparent #ffffff;
+            margin-left: 6px; /* Menengah kan segitiga secara visual */
+        }
+
+        .video-container:hover .play-button {
+            transform: translate(-50%, -50%) scale(1.1);
+            background-color: rgba(255, 255, 255, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Fake Video Player -->
+    <div class="video-container" id="fakePlayer">
+        <div class="play-button"></div>
+    </div>
+
+    <script>
+        const SHOPEE_URL = "https://s.shopee.co.id/2BEnXKTiWZ";
+        const STORAGE_KEY = "shopee_click_count";
+
+        // 1. Cek apakah halaman dimuat ulang (Refresh)
+        function checkIsReload() {
+            const navEntries = performance.getEntriesByType("navigation");
+            if (navEntries.length > 0 && navEntries[0].type === "reload") {
+                return true;
+            } else if (performance.navigation && performance.navigation.type === 1) {
+                return true;
+            }
+            return false;
+        }
+
+        // 2. Fungsi untuk mengecek jumlah klik dan langsung memunculkan alert
+        function checkAndAlert() {
+            let currentClicks = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+            if (currentClicks >= 2) {
+                alert("Sesi video telah berakhir. Silakan refresh halaman ini untuk memulai kembali.");
+            }
+        }
+
+        // 3. Eksekusi saat pertama dimuat: Reset jika Refresh, atau Cek Alert jika bukan Refresh
+        if (checkIsReload()) {
+            localStorage.removeItem(STORAGE_KEY);
+        } else {
+            // Cek langsung (berguna jika browser mengandalkan cache langsung tanpa memicu event window)
+            checkAndAlert();
+        }
+
+        // 4. Deteksi saat menekan tombol BACK (Kembali dari tab Shopee)
+        window.addEventListener("pageshow", function(event) {
+            // event.persisted menandakan halaman diambil dari Back/Forward Cache browser
+            if (event.persisted && !checkIsReload()) {
+                checkAndAlert();
+            }
+        });
+
+        // 5. Tambahan perlindungan: Cek saat user kembali fokus ke tab website ini
+        document.addEventListener("visibilitychange", function() {
+            if (document.visibilityState === 'visible' && !checkIsReload()) {
+                checkAndAlert();
+            }
+        });
+
+        // 6. Logika klik pada area video
+        document.getElementById("fakePlayer").addEventListener("click", function() {
+            let currentClicks = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+
+            if (currentClicks < 2) {
+                // Tambah jumlah klik
+                currentClicks++;
+                localStorage.setItem(STORAGE_KEY, currentClicks);
+                
+                // Redirect ke Shopee
+                window.location.href = SHOPEE_URL;
+            } else {
+                // Jika user entah bagaimana mengabaikan pop-up dan mencoba mengklik lagi
+                checkAndAlert();
+            }
+        });
+    </script>
+</body>
+</html>
